@@ -129,10 +129,15 @@ class CRUDController extends Controller
             $database = $request->get('nombre_bd');
             $nombre = $request->get('nombre_tabla');
             $header = $this->header($nombre, $database);
+            for ($i=0; $i < count($header); $i++) { 
+                $datos[$i]= $header[$i]->COLUMN_NAME;
+            }
+            $campos = implode(", ",$datos);
+            //dd($campos);
+
             $tablas= $this->lista($database);
             $body= DB::table($database.'.'.$nombre)->get();
-            //dd($body);
-            return view('tablas.show', ['header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
+            return view('tablas.show', [  'campos'=>$campos, 'header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
         } catch (\Throwable $th) {
             session()->flash('message', "Error al obtener la tabla $nombre, se produjo el error $th"); 
             session()->flash('alert-class', 'alert-danger');
@@ -240,4 +245,32 @@ class CRUDController extends Controller
             return $this->show( $request );
         }
     }*/
+
+    public function consulta(Request $request) {
+        try {
+            $database = $request->get('nombre_bd');
+            $nombre = $request->get('nombre_tabla');
+            $consulta = $request->get('consulta');
+            $campos = $this->header($nombre, $database);
+            for ($i=0; $i < count($campos); $i++) { 
+                $datos[$i]= $campos[$i]->COLUMN_NAME;
+            }
+            $campos = implode(", ",$datos);
+
+            $body= DB::select($consulta);
+            $header = array_keys(get_object_vars($body[0]));
+            $tablas= $this->lista($database);
+            return view('tablas.consulta', [ 'campos'=>$campos, 'header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
+        } catch (\Throwable $th) {
+            session()->flash('message', "Error al obtener en la consulta de tabla $nombre, se produjo el error $th"); 
+            session()->flash('alert-class', 'alert-danger');
+            return $this->show( $request );
+        }
+
+    }
+
+
+
+
+
 }

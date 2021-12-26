@@ -17,7 +17,7 @@
 
     <x-tablas.buscar :tablas="$tablas"  :nombre="$nombre" :database="$database" />
 
-    <x-tablas.tabla :tablas="$tablas" :nombre="$nombre" :database="$database" :header="$header" :body="$body" />
+    <x-tablas.tabla :tablas="$tablas" :nombre="$nombre" :database="$database" :header="$header" :body="$body" :campos="$campos"  />
   
 </div>
 

@@ -1,17 +1,25 @@
 
-
-     
-<div class="form-group">
-    <form method="POST" action="{{ route("tablas.create") }}">
+<div class="btn-group"  style="width:90%" >
+    <form method="POST" action="{{ route("tablas.create") }}" class="form-control-sm">
         @csrf
         <input type="hidden" name="nombre_tabla" value="{{$nombre}}">
         <input type="hidden" name="nombre_bd" value="{{$database}}">
-        <button class="btn btn-primary" type="submit">CREAR FILA EN TABLA {{$nombre}}</button>
+        <button class="btn btn-primary" type="submit">Insertar en tabla {{$nombre}}</button>
     </form>
-</div>
-    
 
-  
+
+    <form method="POST"  action="{{ route("consulta") }}"  class="form-control-sm" >
+        @csrf
+        <input type="hidden" name="nombre_tabla" value="{{$nombre}}">
+        <input type="hidden" name="nombre_bd" value="{{$database}}">
+        <x-tablas.consulta :nombre="$nombre" :database="$database"  :campos="$campos" /> 
+    </form>
+
+</div>
+<br>
+<br>
+
+<div class="container">
     <table class="table table-striped  table-responsive" style="width:90%" id="myTable" >
         <thead>
             <tr> 
@@ -62,5 +70,5 @@
             @endforelse
         </tbody>
     </table>
-    
+</div> 
 
