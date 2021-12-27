@@ -15,12 +15,19 @@
         <x-tablas.consulta :nombre="$nombre" :database="$database"  :campos="$campos" /> 
     </form>
 
+    <form method="POST" action="{{ route("excel") }}" class="form-control-sm">
+        @csrf
+        <input type="hidden" name="nombre_tabla" value="{{$nombre}}">
+        <input type="hidden" name="nombre_bd" value="{{$database}}">
+        <button class="btn btn-success" type="submit">Descargar tabla {{$nombre}} en Excel</button>
+    </form>
+
 </div>
 <br>
 <br>
-
+<br>
 <div class="container">
-    <table class="table table-striped  table-responsive" style="width:90%" id="myTable" >
+    <table id="example" class="table table-hover table-responsive" style="width:100%">
         <thead>
             <tr> 
             @for ($i = 0; $i < count($header); $i++)

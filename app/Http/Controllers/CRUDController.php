@@ -5,6 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+use vendor\autoload;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
 
 class CRUDController extends Controller
 {
@@ -109,7 +114,8 @@ class CRUDController extends Controller
             $datos = implode(",", $datos);
             
             DB::insert("insert into $database.$nombre ($campos) values ($datos)");
-    
+            session()->flash('message', "Nuevos datos ingresados con exito"); 
+            session()->flash('alert-class', 'alert-success');
             return $this->show( $request );
 
         } catch (\Throwable $th) {
@@ -139,7 +145,7 @@ class CRUDController extends Controller
             $body= DB::table($database.'.'.$nombre)->get();
             return view('tablas.show', [  'campos'=>$campos, 'header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
         } catch (\Throwable $th) {
-            session()->flash('message', "Error al obtener la tabla $nombre, se produjo el error $th"); 
+            session()->flash('message_tabla', "Error al obtener la tabla $nombre, se produjo el error $th"); 
             session()->flash('alert-class', 'alert-danger');
             return $this->index( $request );
         }
@@ -198,7 +204,8 @@ class CRUDController extends Controller
             }
             $insertar= implode(",",$insertar);
             DB::update("update $database.$nombre set $insertar where $key_id = ?", [$value_id]);
-    
+            session()->flash('message', "Edición exitosa"); 
+            session()->flash('alert-class', 'alert-success');
             return $this->show( $request );
         } catch (\Throwable $th) {
             session()->flash('message', "No se logró editar el objeto $value_id de la tabla $nombre, se produjo el error $th"); 
@@ -251,16 +258,26 @@ class CRUDController extends Controller
             $database = $request->get('nombre_bd');
             $nombre = $request->get('nombre_tabla');
             $consulta = $request->get('consulta');
-            $campos = $this->header($nombre, $database);
-            for ($i=0; $i < count($campos); $i++) { 
-                $datos[$i]= $campos[$i]->COLUMN_NAME;
-            }
-            $campos = implode(", ",$datos);
-
             $body= DB::select($consulta);
-            $header = array_keys(get_object_vars($body[0]));
-            $tablas= $this->lista($database);
-            return view('tablas.consulta', [ 'campos'=>$campos, 'header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
+            if (count($body) > 0 ) {
+                $campos = $this->header($nombre, $database);
+                for ($i=0; $i < count($campos); $i++) { 
+                    $datos[$i]= $campos[$i]->COLUMN_NAME;
+                }
+                $campos = implode(", ",$datos);
+    
+                $header = array_keys(get_object_vars($body[0]));
+                $tablas= $this->lista($database);
+                session()->flash('message', "Consulta exitosa"); 
+                session()->flash('alert-class', 'alert-success');
+                return view('tablas.consulta', [ 'campos'=>$campos, 'header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
+     
+            } else {
+                session()->flash('message', "Consulta no genera resultados"); 
+                session()->flash('alert-class', 'alert-info');
+                return $this->show( $request );
+            }
+              
         } catch (\Throwable $th) {
             session()->flash('message', "Error al obtener en la consulta de tabla $nombre, se produjo el error $th"); 
             session()->flash('alert-class', 'alert-danger');
@@ -269,7 +286,84 @@ class CRUDController extends Controller
 
     }
 
+    public function exportexcel(Request $request){
+        $database = $request->get('nombre_bd');
+        $nombre = $request->get('nombre_tabla');
 
+        $header = $this->header($nombre, $database);
+        for ($i=0; $i < count($header); $i++) { 
+            $cabecera[$i]= $header[$i]->COLUMN_NAME;
+        }
+
+        $documento = new Spreadsheet();
+        $documento
+            ->getProperties()
+            ->setCreator("Alcides Cádiz")
+            ->setLastModifiedBy('Alcides Cádiz')
+            ->setTitle($nombre)
+            ->setSubject($nombre)
+            ->setDescription('')
+            ->setKeywords('')
+            ->setCategory('');
+
+        $hoja = $documento->getActiveSheet();
+
+        //nombre de la hoja
+        $hoja->setTitle($nombre);
+
+        //encabezados
+        for ($i = 0; $i < count($cabecera); $i++) {
+            
+            $hoja->setCellValueByColumnAndRow($i+1, 1, $cabecera[$i]);
+            
+        }
+        
+        //estilo a encabezados
+        $documento->getActiveSheet()->getStyle('A1:Z1')->getFont()->setBold(true);
+        $documento->getActiveSheet()->getStyle('A1:Z1')->getAlignment()->setHorizontal('center');
+        
+    
+        //datos de l atabla
+        $dcompras = DB::table($database.'.'.$nombre)->get();
+     
+        $fila = 2;
+        foreach  ($dcompras as $item){
+            for ($i = 0; $i < count($cabecera); $i++) {
+                $key =$cabecera[$i];
+                $hoja->setCellValueByColumnAndRow($i+1, $fila, $item->$key);
+            }
+            $fila++;
+       }
+       
+       
+        
+        //ajustar tamaño al conteenido de la celda
+        $documento->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('B')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('C')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('D')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('E')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('F')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('G')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('H')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('I')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('J')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('K')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('L')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('M')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('N')->setAutoSize(true);
+        $documento->getActiveSheet()->getColumnDimension('O')->setAutoSize(true);
+
+        $hoy = date("Y-m-d");
+        $nombreDelDocumento = "$hoy-$nombre.xlsx";
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $nombreDelDocumento . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = IOFactory::createWriter($documento, 'Xlsx');
+        $writer->save('php://output');
+        exit;
+    }
 
 
 

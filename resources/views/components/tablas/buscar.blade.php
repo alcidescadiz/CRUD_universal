@@ -1,7 +1,7 @@
-<div class="form-group"><a href="{{route('getdb')}}" class="btn btn-primary">Cambiar la Base de datos</a></div>
+<div class="form-group"><a href="{{route('getdb')}}" class="btn btn-outline-primary">Cambiar la Base de datos</a></div>
 <h3>seleccionar una tabla:</h3>
 <div style="width:90%" >
-    <form action="{{route('tabla')}}" method="get"   > 
+    <form action="{{route('tabla')}}" method="post"   > 
         @csrf
         <div  class="btn-group">
             <div style="padding: 5" >
@@ -19,7 +19,7 @@
             </div>
             <input type="hidden" name="nombre_bd" value="{{$database}}"  >
             <div style="margin: 5" >
-                <button type="submit" style="width:100px; " class="btn btn-primary" >BUSCAR</button>
+                <button type="submit" style="width:100px; " class="btn btn-outline-success" >BUSCAR</button>
             </div>
         </div>
     </form>

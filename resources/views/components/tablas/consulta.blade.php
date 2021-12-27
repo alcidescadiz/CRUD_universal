@@ -1,5 +1,5 @@
 <div>
-<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#consulta">
+<button type="button" class="btn btn-info" data-toggle="modal" data-target="#consulta">
   Generar consulta SQL
 </button>
    <div class="modal" id="consulta" tabindex="-1" aria-hidden="true" >
@@ -20,11 +20,12 @@
              <li >select * from {{$database}}.{{$nombre}} </li>
              <li >select * from {{$database}}.{{$nombre}} where id = '2'</li>
              <li >select sum(id) as suma from {{$database}}.{{$nombre}}  </li>
+             <li >delete from {{$database}}.{{$nombre}} where id = '2' </li>
             </ul>
           </div>
           <div class="modal-footer">
            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-           <button type="submit" class="btn btn-primary">Generar consulta SQL</button>
+           <button type="submit" class="btn btn-info">Generar consulta SQL</button>
          </div>
        </div>
      </div>
