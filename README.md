@@ -10,6 +10,7 @@
 ## Crud Universal
 
 Aplicación web realizada bajo framework de Laravel
+
 Permite:
 * Elegir cualquier base de datos en MySql
 * Elegir cualquier tabla de la base de datos seleccionada
@@ -19,3 +20,7 @@ Permite:
 
 Limitaciones:
 * Tablas con mucha data relentiza la lectura y acceso a los datos.
+
+Librerias usadas:
+* https://datatables.net/
+* https://github.com/PHPOffice
