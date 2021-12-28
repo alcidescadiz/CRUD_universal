@@ -10,3 +10,12 @@
 ## Crud Universal
 
 Aplicación web realizada bajo framework de Laravel
+Permite:
+* Elegir cualquier base de datos en MySql
+* Elegir cualquier tabla de la base de datos seleccionada
+* Operaciones CRUD
+* Consultas Sql a la base de datos
+* Descargar la tabla en formato xls (Excel)
+
+Limitaciones:
+* Tablas con mucha data relentiza la lectura y acceso a los datos.
