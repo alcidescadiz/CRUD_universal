@@ -27,7 +27,7 @@
 <br>
 <br>
 <div class="container">
-    <table id="example" class="table table-hover table-responsive" style="width:100%">
+    <table id="example" id="example" class="table table-striped table-bordered"  style="width:100%">
         <thead>
             <tr> 
             @for ($i = 0; $i < count($header); $i++)
@@ -35,7 +35,8 @@
                     <th>{{$header[$i]->COLUMN_NAME}}</th>
                 @endif
             @endfor 
-                <th colspan="3" style="text-align: center">ACCIONES</th>
+                <th style="width: 80px">Editar</th>
+                <th style="width: 80px">Eliminar</th>
             </tr>
         </thead>
         <tbody>
@@ -47,7 +48,7 @@
                                 <td data-titulo="{{$key}}">{{$item->$key}}</td>
                             @endif
                         @endfor
-                            <td style="text-align: center">
+                            <td>
                                 <form method="POST" action="{{ route("tablas.edit") }}">
                                     @csrf
                                     @method('PUT')
@@ -58,7 +59,7 @@
                                     <button class="btn btn-primary" type="submit">Editar</button>
                                 </form>
                             </td>
-                            <td style="text-align: center">
+                            <td>
                                 <form method="POST"  action="{{ route("tabla.delete" , $item->$noid)}}"  >
                                     @csrf
                                     @method('DELETE')
@@ -78,4 +79,19 @@
         </tbody>
     </table>
 </div> 
+<script>
+
+    $(document).ready(function() {
+        $('#example').DataTable( {
+            "language": {
+            "lengthMenu": "Muestra _MENU_ registros por página",
+            "zeroRecords": "Nada coincide en la busqueda",
+            "info": "Página _PAGE_ de _PAGES_",
+            "infoEmpty": "No hay registros para mostrar",
+            "infoFiltered": "(filtrado de _MAX_ registros)"
+            },
+           
+        } );
+    } );
+</script>
 

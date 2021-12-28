@@ -77,8 +77,7 @@ class CRUDController extends Controller
             $nombre = $request->get('nombre_tabla');
             $tablas= $this->lista($database);
             $header = $this->header($nombre, $database );
-            $body= DB::select("SELECT * FROM $database.$nombre");
-            return view('/tablas/create', ['header'=>$header, 'body'=> $body,'tablas'=>$tablas,'nombre'=> $nombre, 'database'=> $database]);
+            return view('/tablas/create', ['header'=>$header, 'tablas'=>$tablas,'nombre'=> $nombre, 'database'=> $database]);
   
         } catch (\Throwable $th) {
             session()->flash('message', "Error al solicitar ingresar datos nuevos datos a la tabla $nombre"); 
@@ -142,7 +141,12 @@ class CRUDController extends Controller
             //dd($campos);
 
             $tablas= $this->lista($database);
-            $body= DB::table($database.'.'.$nombre)->get();
+            $body= DB::table($database.'.'.$nombre)->paginate(2000);
+            $max = count($body);
+            if ( $max > 1999 ) {
+                session()->flash('message', "La tabla a mostrar tiene mas de 2000 registros, supera el limite  de espera y visualización, si desea datos especificos puede usar una consulta Sql, o administrarla directamente desde MySql"); 
+                session()->flash('alert-class', 'alert-danger');
+            }
             return view('tablas.show', [  'campos'=>$campos, 'header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
         } catch (\Throwable $th) {
             session()->flash('message_tabla', "Error al obtener la tabla $nombre, se produjo el error $th"); 
