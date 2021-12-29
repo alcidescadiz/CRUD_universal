@@ -1,18 +1,6 @@
 @extends('layouts.dtshow')
 @section('title', __('Dashboard'))
 
-@section('css')
-
-<script src="{{ asset('js/jquery.slim.min.js') }}"></script>
-<script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
-<script src="{{ asset('js/jquery-3.5.1.js') }}"></script>  
-<script src="{{ asset('js/jquery.dataTables.min.js') }}"></script>
-<script src="{{ asset('js/dataTables.bootstrap4.min.js') }}"></script>
-<link rel="stylesheet" href="{{ asset('css/bootstrap.css') }}">
-<link rel="stylesheet" href="{{ asset('css/dataTables.bootstrap4.min.css') }}">
-
-
-@endsection
 
 @section('content')
 

@@ -8,7 +8,17 @@
     
 <div>
     <h2>Editar elemento {{$id}} de la tabla: {{$nombre}}</h2>
-    <form action="{{route('tabla.update', $id )}}" method="post" class="form-control-sm">
+
+    @if (session()->has('message_create'))
+        <div class="alert {{ Session::get('alert-class')}} alert-dismissible fade show" role="alert" style="width: 90%">
+            {{ session('message_create') }} 
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
+
+    <form action="{{route('tabla.update', $id )}}" method="post" class="form-control-sm" style="width: 90%">
         @csrf
         @method('PUT')
         <input type="hidden" name="nombre_tabla" value="{{$nombre}}">
@@ -28,7 +38,7 @@
                                         type="date"  
                         
                         @else   type="text"
-                        @endif  @if ($i === 0) readonly @endif  name="{{$key}}"  class="form-control" value="{{$item->$key}}" >
+                        @endif  @if ($i === 0) readonly @endif  name="{{$key}}" required  class="form-control" value="{{$item->$key}}" >
                     </div>
                 @endif
             @endfor

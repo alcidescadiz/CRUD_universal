@@ -8,7 +8,18 @@
     
     <div>
         <h2>Crear en Tabla: {{$nombre}}</h2>
-        <form action="{{route('tablas.store')}}" method="post" class="form-control-sm">
+
+        @if (session()->has('message_create'))
+            <div class="alert {{ Session::get('alert-class')}} alert-dismissible fade show" role="alert" style="width: 90%">
+                {{ session('message_create') }} 
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        @endif
+
+
+        <form action="{{route('tablas.store')}}" method="post" class="form-control-sm" style="width: 90%">
             @csrf
             <input type="hidden" name="nombre_tabla" value="{{$nombre}}">
             <input type="hidden" name="nombre_bd" value="{{$database}}">  

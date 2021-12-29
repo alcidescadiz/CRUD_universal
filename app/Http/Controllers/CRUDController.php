@@ -4,12 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
-use vendor\autoload;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-
 
 class CRUDController extends Controller
 {
@@ -37,7 +33,6 @@ class CRUDController extends Controller
         }
         return $lista;
     }
-    
     //  en vez de listar todas las tablas, puede insertar las tablas que desea administrar
     /*public function lista() {
         $lista =  ['ventas', 'compras'];
@@ -49,7 +44,6 @@ class CRUDController extends Controller
         $header = DB::select("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '$database' and TABLE_NAME = '$nombre'");
         return $header;
     }
-
     /**
      * Display a listing of the resource.
      *
@@ -61,11 +55,17 @@ class CRUDController extends Controller
         return view('tablas.indexDB', ['database'=> $database]);
     }
     public function index(Request $request) {
-        $database= $request->get('nombre_bd');
-        $tablas= $this->lista($database);
-        return view('tablas.index', ['tablas'=>$tablas, 'database'=> $database]);
+        if ($request->get('nombre_bd') != null) {
+            $database= $request->get('nombre_bd');
+            $tablas= $this->lista($database);
+            return view('tablas.index', ['tablas'=>$tablas, 'database'=> $database]);
+        } else {
+            session()->flash('message', "Debe elegir una Base de Datos"); 
+            session()->flash('alert-class', 'alert-danger');
+            return $this->getDB();
+        }
+        
     }
-
     /**
      * Show the form for creating a new resource.
      *
@@ -85,14 +85,13 @@ class CRUDController extends Controller
             return $this->show( $request );
         }
     }
-
     /**
      * Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request) {
+    public function store(Request $request) {  
         try {
             $nombre = $request->get('nombre_tabla');
             $database = $request->get('nombre_bd');
@@ -104,19 +103,34 @@ class CRUDController extends Controller
             $valores= array_values($request->all());
             for ($i=3; $i < count($valores); $i++) { 
                 $datos[$i]= '"'.$valores[$i].'"';
+                $validar[$i]= $valores[$i];
             }
             for ($i=0; $i < count($campos); $i++) { 
                 $incognitas[$i]= '?';
             }
-            $campos= implode(",", $campos);
-            $incognitas= implode(",", $incognitas);
-            $datos = implode(",", $datos);
+            //validacion de campos vacions 
+                $condicion = true;
+                foreach ($validar as $key => $value) {
+                    if ($value === null) {
+                        $condicion = null;
+                    }
+                }
+                if ( $condicion === null) {
+                    
+                    session()->flash('message_create', "No se aceptan datos vacios");
+                    session()->flash('alert-class', 'alert-danger');
+                    return $this->create( $request );
+                }else {
+                    $campos= implode(",", $campos);
+                    $incognitas= implode(",", $incognitas);
+                    $datos = implode(",", $datos);
+                    
+                    DB::insert("insert into $database.$nombre ($campos) values ($datos)");
+                    session()->flash('message', "Nuevos datos ingresados con exito"); 
+                    session()->flash('alert-class', 'alert-success');
+                    return $this->show( $request );
+                }
             
-            DB::insert("insert into $database.$nombre ($campos) values ($datos)");
-            session()->flash('message', "Nuevos datos ingresados con exito"); 
-            session()->flash('alert-class', 'alert-success');
-            return $this->show( $request );
-
         } catch (\Throwable $th) {
             session()->flash('message', "Error al solicitar ingresar datos nuevos datos a la tabla $nombre"); 
             session()->flash('alert-class', 'alert-danger');
@@ -130,32 +144,36 @@ class CRUDController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function show(Request $request) {
-        try {
-            $database = $request->get('nombre_bd');
-            $nombre = $request->get('nombre_tabla');
-            $header = $this->header($nombre, $database);
-            for ($i=0; $i < count($header); $i++) { 
-                $datos[$i]= $header[$i]->COLUMN_NAME;
-            }
-            $campos = implode(", ",$datos);
-            //dd($campos);
-
-            $tablas= $this->lista($database);
-            $body= DB::table($database.'.'.$nombre)->paginate(2000);
-            $max = count($body);
-            if ( $max > 1999 ) {
-                session()->flash('message', "La tabla a mostrar tiene mas de 2000 registros, supera el limite  de espera y visualización, si desea datos especificos puede usar una consulta Sql, o administrarla directamente desde MySql"); 
+        if ($nombre = $request->get('nombre_tabla') != null) {
+            try {
+                $database = $request->get('nombre_bd');
+                $nombre = $request->get('nombre_tabla');
+                $header = $this->header($nombre, $database);
+                for ($i=0; $i < count($header); $i++) { 
+                    $datos[$i]= $header[$i]->COLUMN_NAME;
+                }
+                $campos = implode(", ",$datos);
+                //dd($campos);
+    
+                $tablas= $this->lista($database);
+                $body= DB::table($database.'.'.$nombre)->paginate(2000);
+                $max = count($body);
+                if ( $max > 1999 ) {
+                    session()->flash('message', "La tabla a mostrar tiene mas de 2000 registros, supera el limite  de espera y visualización, si desea datos especificos puede usar una consulta Sql, o administrarla directamente desde MySql"); 
+                    session()->flash('alert-class', 'alert-danger');
+                }
+                return view('tablas.show', [  'campos'=>$campos, 'header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
+            } catch (\Throwable $th) {
+                session()->flash('message_tabla', "Error al obtener la tabla $nombre, se produjo el error $th"); 
                 session()->flash('alert-class', 'alert-danger');
+                return $this->index( $request );
             }
-            return view('tablas.show', [  'campos'=>$campos, 'header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
-        } catch (\Throwable $th) {
-            session()->flash('message_tabla', "Error al obtener la tabla $nombre, se produjo el error $th"); 
+        } else {
+            session()->flash('message_tabla', "Debe seleccionar una tabla de la lista"); 
             session()->flash('alert-class', 'alert-danger');
             return $this->index( $request );
         }
-
     }
-
     /**
      * Show the form for editing the specified resource.
      *
@@ -179,7 +197,6 @@ class CRUDController extends Controller
             return $this->show( $request );
         }
     }
-
     /**
      * Update the specified resource in storage.
      *
@@ -202,29 +219,42 @@ class CRUDController extends Controller
             $valores= array_values($request->all());
             for ($i=7; $i < count($valores)-1; $i++) { 
                 $datos[$i]= $valores[$i];
+                $validar[$i]= $valores[$i];
             }
             foreach ($datos as $key => $value) {
                 $insertar[$key]=  $campos[$key].' = '.'"'.$value.'"';    
             }
-            $insertar= implode(",",$insertar);
-            DB::update("update $database.$nombre set $insertar where $key_id = ?", [$value_id]);
-            session()->flash('message', "Edición exitosa"); 
-            session()->flash('alert-class', 'alert-success');
-            return $this->show( $request );
+            // Validaciones  Requiered
+                $condicion = true;
+                foreach ($validar as $key => $value) {
+                    if ($value === null) {
+                        $condicion = null;
+                    }
+                }
+                if ( $condicion === null) {
+                    session()->flash('message_create', "No se aceptan datos vacios");
+                    session()->flash('alert-class', 'alert-danger');
+                    return $this->edit( $request );
+                }else {
+                    $insertar= implode(",",$insertar);
+                    DB::update("update $database.$nombre set $insertar where $key_id = ?", [$value_id]);
+                    session()->flash('message', "Edición exitosa"); 
+                    session()->flash('alert-class', 'alert-success');
+                    return $this->show( $request );
+                }
+
         } catch (\Throwable $th) {
             session()->flash('message', "No se logró editar el objeto $value_id de la tabla $nombre, se produjo el error $th"); 
             session()->flash('alert-class', 'alert-danger');
             return $this->show( $request );
         }
     }
-
     /**
      * Remove the specified resource from storage.
      *
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-
      // para cambiar un estutus de "eliminado" en un campo establecido ene la tabla
     public function destroy(Request $request) {
         try {
@@ -233,6 +263,8 @@ class CRUDController extends Controller
             $key_id = $request->get('key_id');
             $id = $request->get('id');
             DB::update("update $database.$nombre set estatus = 'eliminado' where $key_id  = ?", [$id]);
+            session()->flash('message', "Eliminado el objeto $id de la tabla $nombre"); 
+            session()->flash('alert-class', 'alert-info');
             return $this->show( $request );
         } catch (\Throwable $th) {
             session()->flash('message', "No se logró eliminar el objeto $id de la tabla $nombre, es probable que no posea el campo 'estatus'"); 
@@ -240,7 +272,6 @@ class CRUDController extends Controller
             return $this->show( $request );
         }
     }
-    
     // Para borrar definitivo
     /*public function destroy(Request $request) {
         try {
@@ -249,6 +280,8 @@ class CRUDController extends Controller
             $key_id = $request->get('key_id');
             $id = $request->get('id');
             DB::delete("delete from $database.$nombre where $key_id = ?", [$id]);
+            session()->flash('message', "Eliminado el objeto $id de la tabla $nombre"); 
+            session()->flash('alert
             return $this->show( $request );
         } catch (\Throwable $th) {
             session()->flash('message', "No se logró eliminar el objeto $id de la tabla $nombre"); 
@@ -256,40 +289,42 @@ class CRUDController extends Controller
             return $this->show( $request );
         }
     }*/
-
-    public function consulta(Request $request) {
-        try {
-            $database = $request->get('nombre_bd');
-            $nombre = $request->get('nombre_tabla');
-            $consulta = $request->get('consulta');
-            $body= DB::select($consulta);
-            if (count($body) > 0 ) {
-                $campos = $this->header($nombre, $database);
-                for ($i=0; $i < count($campos); $i++) { 
-                    $datos[$i]= $campos[$i]->COLUMN_NAME;
-                }
-                $campos = implode(", ",$datos);
-    
-                $header = array_keys(get_object_vars($body[0]));
-                $tablas= $this->lista($database);
-                session()->flash('message', "Consulta exitosa"); 
-                session()->flash('alert-class', 'alert-success');
-                return view('tablas.consulta', [ 'campos'=>$campos, 'header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
-     
-            } else {
-                session()->flash('message', "Consulta no genera resultados"); 
-                session()->flash('alert-class', 'alert-info');
+    public function consulta(Request $request) {  
+        if ($consulta = $request->get('consulta') != null) {
+            try {
+                $database = $request->get('nombre_bd');
+                $nombre = $request->get('nombre_tabla');
+                $consulta = $request->get('consulta');
+                $body= DB::select($consulta);
+                if (count($body) > 0 ) {
+                    $campos = $this->header($nombre, $database);
+                    for ($i=0; $i < count($campos); $i++) { 
+                        $datos[$i]= $campos[$i]->COLUMN_NAME;
+                    }
+                    $campos = implode(", ",$datos);
+        
+                    $header = array_keys(get_object_vars($body[0]));
+                    $tablas= $this->lista($database);
+                    session()->flash('message', "Consulta exitosa"); 
+                    session()->flash('alert-class', 'alert-success');
+                    return view('tablas.consulta', [ 'campos'=>$campos, 'header'=>$header, 'body'=> $body, 'tablas'=>$tablas, 'nombre'=> $nombre, 'database'=> $database]);
+         
+                } else {
+                    session()->flash('message', "Consulta no genera resultados"); 
+                    session()->flash('alert-class', 'alert-info');
+                    return $this->show( $request );
+                } 
+            } catch (\Throwable $th) {
+                session()->flash('message', "Error al obtener en la consulta de tabla $nombre, se produjo el error $th"); 
+                session()->flash('alert-class', 'alert-danger');
                 return $this->show( $request );
             }
-              
-        } catch (\Throwable $th) {
-            session()->flash('message', "Error al obtener en la consulta de tabla $nombre, se produjo el error $th"); 
+        } else {
+            session()->flash('message', "La consulta no debe estar vacía"); 
             session()->flash('alert-class', 'alert-danger');
             return $this->show( $request );
         }
-
     }
-
     public function exportexcel(Request $request){
         $database = $request->get('nombre_bd');
         $nombre = $request->get('nombre_tabla');
@@ -298,7 +333,6 @@ class CRUDController extends Controller
         for ($i=0; $i < count($header); $i++) { 
             $cabecera[$i]= $header[$i]->COLUMN_NAME;
         }
-
         $documento = new Spreadsheet();
         $documento
             ->getProperties()
@@ -309,25 +343,17 @@ class CRUDController extends Controller
             ->setDescription('')
             ->setKeywords('')
             ->setCategory('');
-
         $hoja = $documento->getActiveSheet();
-
         //nombre de la hoja
         $hoja->setTitle($nombre);
-
         //encabezados
-        for ($i = 0; $i < count($cabecera); $i++) {
-            
-            $hoja->setCellValueByColumnAndRow($i+1, 1, $cabecera[$i]);
-            
+        for ($i = 0; $i < count($cabecera); $i++) {    
+            $hoja->setCellValueByColumnAndRow($i+1, 1, $cabecera[$i]);   
         }
-        
         //estilo a encabezados
         $documento->getActiveSheet()->getStyle('A1:Z1')->getFont()->setBold(true);
         $documento->getActiveSheet()->getStyle('A1:Z1')->getAlignment()->setHorizontal('center');
-        
-    
-        //datos de l atabla
+        //datos de la tabla
         $dcompras = DB::table($database.'.'.$nombre)->get();
      
         $fila = 2;
@@ -338,37 +364,18 @@ class CRUDController extends Controller
             }
             $fila++;
        }
-       
-       
-        
-        //ajustar tamaño al conteenido de la celda
-        $documento->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('B')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('C')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('D')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('E')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('F')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('G')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('H')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('I')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('J')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('K')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('L')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('M')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('N')->setAutoSize(true);
-        $documento->getActiveSheet()->getColumnDimension('O')->setAutoSize(true);
-
+        $columnas =['A','B','C','D','E','F', 'G', 'H', 'I', 'J','K','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','AA' ];
+        for ($i = 0; $i < count($cabecera); $i++) {
+            $documento->getActiveSheet()->getColumnDimension($columnas[$i])->setAutoSize(true);
+        }
+        // nombre para el archivo excel
         $hoy = date("Y-m-d");
         $nombreDelDocumento = "$hoy-$nombre.xlsx";
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="' . $nombreDelDocumento . '"');
         header('Cache-Control: max-age=0');
-
         $writer = IOFactory::createWriter($documento, 'Xlsx');
         $writer->save('php://output');
         exit;
     }
-
-
-
 }
