@@ -15,6 +15,7 @@ Permite:
 * Elegir cualquier base de datos en MySql
 * Elegir cualquier tabla de la base de datos seleccionada
 * Operaciones CRUD
+* Validaciones (required) en formularios, tanto en frontend como en backend
 * Consultas Sql a la base de datos
 * Descargar la tabla en formato xls (Excel)
 
